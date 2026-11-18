@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.*
+!.env.sample
+
+# real data never goes in the repo
+data/
+local/
+*.csv
+!test/fixtures/**/*.csv
+*.log
+.DS_Store
+
+# alignment pages written by the test-page command
+/test-page.pdf
