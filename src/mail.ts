@@ -9,6 +9,7 @@ export interface Attachment {
 
 export interface Message {
   to: string[];
+  cc?: string[];
   subject: string;
   html: string;
   attachments?: Attachment[];
@@ -38,6 +39,7 @@ function smtpMailer(email: Config['email']): Mailer {
       await transport.sendMail({
         from: email.from,
         to: message.to,
+        cc: message.cc,
         subject: message.subject,
         html: message.html,
         attachments: (message.attachments ?? []).map((a) => ({
@@ -86,6 +88,7 @@ function graphMailer(email: Config['email'], fetchImpl: typeof fetch): Mailer {
               subject: message.subject,
               body: { contentType: 'HTML', content: message.html },
               toRecipients: message.to.map((address) => ({ emailAddress: { address } })),
+              ccRecipients: (message.cc ?? []).map((address) => ({ emailAddress: { address } })),
               attachments: (message.attachments ?? []).map((a) => ({
                 '@odata.type': '#microsoft.graph.fileAttachment',
                 name: a.filename,
@@ -111,6 +114,7 @@ function resendMailer(email: Config['email'], fetchImpl: typeof fetch): Mailer {
         body: JSON.stringify({
           from: email.from,
           to: message.to,
+          cc: message.cc && message.cc.length > 0 ? message.cc : undefined,
           subject: message.subject,
           html: message.html,
           attachments: (message.attachments ?? []).map((a) => ({ filename: a.filename, content: base64(a.content) })),

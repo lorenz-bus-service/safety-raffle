@@ -48,7 +48,7 @@ function harness(env: Record<string, string> = {}, mailFails: (message: Message)
   };
   const config = loadConfig({
     SAMSARA_API_TOKEN: 'x', EMAIL_TRANSPORT: 'smtp', SMTP_HOST: 'mail.example.com', EMAIL_FROM: 'raffle@example.com',
-    ADMIN_EMAILS: 'safety@example.com,ops@example.com', ...env,
+    EMAILS_TO: 'safety@example.com,ops@example.com', ...env,
   });
   let clock = new Date('2026-11-03T15:00:00Z');
   const deps = (samsara: SamsaraClient) => ({
@@ -90,6 +90,7 @@ describe('the monthly run', () => {
 
     expect(h.sent).toHaveLength(1);
     expect(h.sent[0]!.to).toEqual(['safety@example.com', 'ops@example.com']);
+    expect(h.sent[0]!.cc).toEqual([]);
     expect(h.sent[0]!.attachments!.map((a) => a.contentType)).toEqual(['application/pdf', 'text/csv', 'text/csv']);
     expect(h.sent[0]!.html).toContain('America/Chicago');
     expect(h.posts).toEqual(['Safety raffle: 4 tickets for 3 drivers, 2026-10-12 to 2026-10-14.']);
@@ -268,6 +269,26 @@ describe('re-runs', () => {
     const result = await runRaffle(h.deps(fake.samsara), h.options({ collect: false }));
     expect(result.issued).toHaveLength(5);
     expect(fake.calls.filter((c) => c.startsWith('scores:'))).toEqual([]);
+  });
+});
+
+describe('copies', () => {
+  it('copies EMAILS_CC on the ticket email and on a failure notice, but not on driver emails', async () => {
+    const h = harness({ EMAILS_CC: 'boss@example.com, it@example.com', SEND_DRIVER_EMAILS: 'true', EXCLUDE_USERNAMES: 'Shop' });
+    await runRaffle(h.deps(october().samsara), h.options());
+    expect(h.sent[0]!.cc).toEqual(['boss@example.com', 'it@example.com']);
+    const maren = h.sent.find((m) => m.to[0] === 'ma1001@example.com')!;
+    expect(maren.cc).toBeUndefined();
+    // The report about undelivered driver emails goes to staff, so it is copied too.
+    expect(h.sent.at(-1)!.subject).toContain('not delivered');
+    expect(h.sent.at(-1)!.cc).toEqual(['boss@example.com', 'it@example.com']);
+
+    const failing = harness({ EMAILS_CC: 'boss@example.com' });
+    const fake = october();
+    fake.failing.push('2026-10-13');
+    await runRaffle(failing.deps(fake.samsara), failing.options());
+    expect(failing.sent[0]!.subject).toMatch(/^FAILED/);
+    expect(failing.sent[0]!.cc).toEqual(['boss@example.com']);
   });
 });
 

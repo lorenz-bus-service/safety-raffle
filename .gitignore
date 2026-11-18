@@ -13,3 +13,6 @@ local/
 
 # alignment pages written by the test-page command
 /test-page.pdf
+
+# staged copy for Windmill, written by scripts/build-windmill.ts
+windmill-dist/

@@ -99,6 +99,10 @@ docker run --rm --env-file .env -v "$PWD/data:/data" safety-raffle run --dry-run
 
 The container runs once and exits. Everything it keeps (score files, issued-ticket records, output and logs) is written to `/data`, so mount a folder there. The image is Linux only; on a Windows server without Docker, run the project directly under Node.
 
+## Windmill
+
+The project also runs as a script in a Windmill workspace, keeping its files in the workspace's object storage. See [docs/windmill.md](docs/windmill.md).
+
 ## Where things are kept
 
 Under `DATA_DIR` (default `./data`, which git ignores):

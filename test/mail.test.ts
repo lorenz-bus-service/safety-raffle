@@ -16,6 +16,7 @@ function recorder(status = 200) {
 
 const message = {
   to: ['a@example.com', 'b@example.com'],
+  cc: ['c@example.com'],
   subject: 'Tickets',
   html: '<p>Hello</p>',
   attachments: [{ filename: 'tickets.pdf', content: new TextEncoder().encode('PDF'), contentType: 'application/pdf' }],
@@ -43,6 +44,7 @@ describe('email transports', () => {
     expect(requests[1]!.headers.Authorization).toBe('Bearer graph-token');
     const sent = JSON.parse(requests[1]!.body).message;
     expect(sent.toRecipients).toEqual([{ emailAddress: { address: 'a@example.com' } }, { emailAddress: { address: 'b@example.com' } }]);
+    expect(sent.ccRecipients).toEqual([{ emailAddress: { address: 'c@example.com' } }]);
     expect(sent.body).toEqual({ contentType: 'HTML', content: '<p>Hello</p>' });
     expect(sent.attachments[0]).toMatchObject({ name: 'tickets.pdf', contentBytes: 'UERG' });
   });
@@ -54,7 +56,7 @@ describe('email transports', () => {
     expect(requests[0]!.url).toBe('https://api.resend.com/emails');
     expect(requests[0]!.headers.Authorization).toBe('Bearer re_123');
     expect(JSON.parse(requests[0]!.body)).toMatchObject({
-      from: 'raffle@example.com', to: message.to, subject: 'Tickets', attachments: [{ filename: 'tickets.pdf', content: 'UERG' }],
+      from: 'raffle@example.com', to: message.to, cc: ['c@example.com'], subject: 'Tickets', attachments: [{ filename: 'tickets.pdf', content: 'UERG' }],
     });
   });
 

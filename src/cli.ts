@@ -5,7 +5,7 @@ import { collectDays, loadDays } from './collect.ts';
 import { compareWithReference, parseCsv } from './compare.ts';
 import { ConfigError, loadConfig, splitList } from './config.ts';
 import type { Config, RerunMode } from './config.ts';
-import { eachDay, monthRange, parseIsoDate, previousMonth, todayIn } from './dates.ts';
+import { eachDay, resolveRange } from './dates.ts';
 import type { DateRange } from './dates.ts';
 import { createMailer } from './mail.ts';
 import { createNotifier } from './notify.ts';
@@ -74,25 +74,9 @@ function createLogger(dataDir: string): (message: string) => void {
   };
 }
 
-function resolveRange(values: Record<string, string | boolean | undefined>, config: Config): DateRange {
+function rangeFrom(values: Record<string, string | boolean | undefined>, config: Config): DateRange {
   const text = (name: string): string | undefined => (typeof values[name] === 'string' ? (values[name] as string) : undefined);
-  const given = ['period', 'from', 'date'].filter((name) => text(name) !== undefined);
-  if (given.length > 1) throw new Error(`Give only one of --period, --from and --date`);
-  let range: DateRange;
-  if (text('period')) range = monthRange(text('period') as string);
-  else if (text('date')) range = { from: text('date') as string, to: text('date') as string };
-  else if (text('from')) range = { from: text('from') as string, to: text('to') ?? (text('from') as string) };
-  else if (text('to')) throw new Error('--to needs --from');
-  else range = previousMonth(config.timeZone);
-
-  parseIsoDate(range.from);
-  parseIsoDate(range.to);
-  if (range.from > range.to) throw new Error(`The range starts (${range.from}) after it ends (${range.to})`);
-  const today = todayIn(config.timeZone);
-  if (range.to >= today) {
-    throw new Error(`The range must end before today (${today} in ${config.timeZone}); a day's scores are not complete until it is over`);
-  }
-  return range;
+  return resolveRange({ period: text('period'), from: text('from'), to: text('to'), date: text('date') }, config.timeZone);
 }
 
 async function main(argv: string[]): Promise<number> {
@@ -144,7 +128,7 @@ async function main(argv: string[]): Promise<number> {
   const log = createLogger(config.dataDir);
   const storage = createLocalStorage(config.dataDir);
   const samsara = createSamsaraClient({ token: config.samsara.token, baseUrl: config.samsara.baseUrl, log });
-  const range = resolveRange(values, config);
+  const range = rangeFrom(values, config);
 
   if (command === 'collect') {
     log(`Collecting ${range.from} to ${range.to}, time zone ${config.timeZone}`);
