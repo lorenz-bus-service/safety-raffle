@@ -62,11 +62,7 @@ describe('who earns tickets', () => {
     expect(result.tickets).toHaveLength(roster.length - 4);
   });
 
-  it('gives a deactivated driver tickets when they are in the roster', () => {
-    expect(buildTickets(roster, days, rules()).tickets.map((t) => t.employeeId)).toContain('of1007');
-  });
-
-  it('ignores and reports scores for drivers missing from the roster', () => {
+  it('ignores and reports scores for a driver who is not on the active roster', () => {
     const activeOnly = roster.filter((d) => d.active);
     const result = buildTickets(activeOnly, days, rules());
     expect(result.tickets.map((t) => t.employeeId)).not.toContain('of1007');

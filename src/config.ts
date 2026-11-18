@@ -24,7 +24,6 @@ export interface Config {
   locale: string;
   dataDir: string;
   rules: TicketRules;
-  includeDeactivatedDrivers: boolean;
   layout: LabelLayout;
   /** Positive values move printing right and down. In points. */
   printOffset: { x: number; y: number };
@@ -168,7 +167,6 @@ export function loadConfig(env: Env, options: { requireSamsara?: boolean } = {})
       employeeIdSource: text('EMPLOYEE_ID_SOURCE', 'username'),
       groupByTags: splitList(env.GROUP_BY_TAGS),
     },
-    includeDeactivatedDrivers: boolean('INCLUDE_DEACTIVATED_DRIVERS', true),
     layout,
     printOffset: { x: mmToPoints(number('PRINT_OFFSET_X_MM', 0)), y: mmToPoints(number('PRINT_OFFSET_Y_MM', 0)) },
     rerunMode: choice('RERUN_MODE', ['supplementary', 'full'] as const, 'supplementary'),

@@ -78,21 +78,21 @@ describe('the monthly run', () => {
 
     expect(result.ok).toBe(true);
     expect(result.issued.map((t) => `${t.employeeId} ${t.date}`)).toEqual([
-      'ma1001 2026-10-12', 'ma1001 2026-10-13', 'tb1002 2026-10-12', 'ic1003 2026-10-14', 'of1007 2026-10-12',
+      'ma1001 2026-10-12', 'ma1001 2026-10-13', 'tb1002 2026-10-12', 'ic1003 2026-10-14',
     ]);
-    expect(fake.calls).toEqual(['scores:2026-10-12', 'scores:2026-10-13', 'scores:2026-10-14', 'drivers:active', 'drivers:deactivated']);
+    expect(fake.calls).toEqual(['scores:2026-10-12', 'scores:2026-10-13', 'scores:2026-10-14', 'drivers:active']);
     expect(result.files.map((f) => f.split('/').pop())).toEqual([
       'tickets-2026-10-12_2026-10-14.pdf', 'tickets-2026-10-12_2026-10-14.csv', 'summary-2026-10-12_2026-10-14.csv',
     ]);
     expect((await PDFDocument.load(h.storage.files.get(result.files[0]!)!)).getPageCount()).toBe(1);
     expect(await h.storage.read(scoreKey('2026-10-13'))).not.toBeNull();
-    expect(await readJson<unknown[]>(h.storage, 'issued/2026-10.json')).toHaveLength(5);
+    expect(await readJson<unknown[]>(h.storage, 'issued/2026-10.json')).toHaveLength(4);
 
     expect(h.sent).toHaveLength(1);
     expect(h.sent[0]!.to).toEqual(['safety@example.com', 'ops@example.com']);
     expect(h.sent[0]!.attachments!.map((a) => a.contentType)).toEqual(['application/pdf', 'text/csv', 'text/csv']);
     expect(h.sent[0]!.html).toContain('America/Chicago');
-    expect(h.posts).toEqual(['Safety raffle: 5 tickets for 4 drivers, 2026-10-12 to 2026-10-14.']);
+    expect(h.posts).toEqual(['Safety raffle: 4 tickets for 3 drivers, 2026-10-12 to 2026-10-14.']);
   });
 
   it('names a whole month by its month', async () => {
@@ -104,8 +104,8 @@ describe('the monthly run', () => {
     expect((await PDFDocument.load(h.storage.files.get(result.files[0]!)!)).getPageCount()).toBe(2);
   });
 
-  it('leaves deactivated drivers out when the setting is off', async () => {
-    const h = harness({ INCLUDE_DEACTIVATED_DRIVERS: 'false' });
+  it('gives a deactivated driver no tickets, even for a day with a qualifying score', async () => {
+    const h = harness();
     const fake = october();
     const result = await runRaffle(h.deps(fake.samsara), h.options());
     expect(fake.calls).not.toContain('drivers:deactivated');
@@ -142,7 +142,7 @@ describe('all or nothing', () => {
     const result = await runRaffle(h.deps(fake.samsara), h.options());
     expect(result.ok).toBe(true);
     expect(fake.calls.filter((c) => c.startsWith('scores:'))).toEqual(['scores:2026-10-13']);
-    expect(result.issued).toHaveLength(6);
+    expect(result.issued).toHaveLength(5);
   });
 
   it('fails when the roster cannot be fetched', async () => {
@@ -170,7 +170,7 @@ describe('all or nothing', () => {
     const result = await runRaffle(h.deps(october().samsara), h.options());
     expect(result.ok).toBe(false);
     expect(result.files).toHaveLength(3);
-    expect(await readJson<unknown[]>(h.storage, 'issued/2026-10.json')).toHaveLength(6);
+    expect(await readJson<unknown[]>(h.storage, 'issued/2026-10.json')).toHaveLength(5);
     expect(h.posts[0]).toMatch(/admin email could not be sent/);
   });
 });
@@ -187,7 +187,7 @@ describe('re-runs', () => {
   it('prints only the new ticket on a supplementary re-run and reports the one that no longer qualifies', async () => {
     const h = harness();
     const first = await runRaffle(h.deps(october().samsara), h.options());
-    expect(first.issued).toHaveLength(6);
+    expect(first.issued).toHaveLength(5);
 
     h.advance(24 * 9);
     const second = await runRaffle(h.deps(revised().samsara), h.options());
@@ -196,7 +196,7 @@ describe('re-runs', () => {
     expect(second.files[0]).toMatch(/-supplementary\/tickets-/);
     expect(second.files[0]).not.toBe(first.files[0]);
     // The earlier ticket stays on record: it is in the driver's hands.
-    expect(await readJson<unknown[]>(h.storage, 'issued/2026-10.json')).toHaveLength(7);
+    expect(await readJson<unknown[]>(h.storage, 'issued/2026-10.json')).toHaveLength(6);
     expect(h.sent[1]!.subject).toContain('supplementary re-run');
     expect(h.sent[1]!.html).toContain('Issued earlier but no longer qualifying');
     expect(h.posts[1]).toBe('Safety raffle: 1 additional tickets for 1 drivers, 2026-10-12 to 2026-10-14.');
@@ -209,21 +209,36 @@ describe('re-runs', () => {
     expect(h.posts[2]).toBe('Safety raffle: No new tickets for 2026-10-12 to 2026-10-14.');
   });
 
+  it('does not report a driver deactivated since the first run as a revision', async () => {
+    const h = harness();
+    await runRaffle(h.deps(october().samsara), h.options());
+    h.advance(24 * 9);
+    // Tobias has left: Samsara drops him from the active roster and returns no scores for him.
+    const later = october();
+    for (const date of Object.keys(later.byDate)) later.byDate[date] = later.byDate[date]!.filter((s) => s.driverId !== '102');
+    const listDrivers = later.samsara.listDrivers;
+    later.samsara.listDrivers = async (status) => (await listDrivers(status)).filter((d) => d.id !== '102');
+    const second = await runRaffle(h.deps(later.samsara), h.options());
+    expect(second.ok).toBe(true);
+    expect(second.issued).toEqual([]);
+    expect(second.noLongerQualifying).toEqual([]);
+  });
+
   it('reprints everything on a full re-run and resets the record to what now qualifies', async () => {
     const h = harness();
     await runRaffle(h.deps(october().samsara), h.options());
     h.advance(24 * 9);
     const second = await runRaffle(h.deps(revised().samsara), h.options({ mode: 'full' }));
-    expect(second.issued).toHaveLength(6);
+    expect(second.issued).toHaveLength(5);
     expect(second.noLongerQualifying).toHaveLength(1);
-    expect(await readJson<unknown[]>(h.storage, 'issued/2026-10.json')).toHaveLength(6);
+    expect(await readJson<unknown[]>(h.storage, 'issued/2026-10.json')).toHaveLength(5);
   });
 
   it('honours RERUN_MODE from the settings', async () => {
     const h = harness({ RERUN_MODE: 'full' });
     await runRaffle(h.deps(october().samsara), h.options());
     h.advance(24 * 9);
-    expect((await runRaffle(h.deps(october().samsara), h.options())).issued).toHaveLength(6);
+    expect((await runRaffle(h.deps(october().samsara), h.options())).issued).toHaveLength(5);
   });
 
   it('restricts a re-run to one employee without disturbing the others', async () => {
@@ -251,7 +266,7 @@ describe('re-runs', () => {
     await runRaffle(h.deps(october().samsara), h.options({ dryRun: true }));
     const fake = october();
     const result = await runRaffle(h.deps(fake.samsara), h.options({ collect: false }));
-    expect(result.issued).toHaveLength(6);
+    expect(result.issued).toHaveLength(5);
     expect(fake.calls.filter((c) => c.startsWith('scores:'))).toEqual([]);
   });
 });
@@ -267,7 +282,7 @@ describe('driver emails', () => {
     const h = harness({ SEND_DRIVER_EMAILS: 'true' });
     await runRaffle(h.deps(october().samsara), h.options());
     expect(h.sent.map((m) => m.to.join())).toEqual([
-      'safety@example.com,ops@example.com', 'ma1001@example.com', 'tb1002@example.com', 'of1007@example.com', 'safety@example.com,ops@example.com',
+      'safety@example.com,ops@example.com', 'ma1001@example.com', 'tb1002@example.com', 'safety@example.com,ops@example.com',
     ]);
     const maren = h.sent[1]!;
     expect(maren.subject).toBe('Your safety raffle tickets: 2 for 2026-10-12 to 2026-10-14');
@@ -276,8 +291,8 @@ describe('driver emails', () => {
     expect(maren.html).not.toContain('>2026-10-14<');
     expect(maren.attachments).toBeUndefined();
     // Imani has no address in Samsara, and Shop has none either: both are named for the admins.
-    expect(h.sent[4]!.subject).toContain('2 not delivered');
-    expect(h.sent[4]!.html).toContain('Cedar, Imani [ic1003]');
+    expect(h.sent[3]!.subject).toContain('2 not delivered');
+    expect(h.sent[3]!.html).toContain('Cedar, Imani [ic1003]');
   });
 
   it('add non-qualifying days when that switch is on', async () => {
@@ -292,7 +307,7 @@ describe('driver emails', () => {
     const h = harness({ SEND_DRIVER_EMAILS: 'true', EXCLUDE_USERNAMES: 'Shop' }, (m) => m.to[0] === 'tb1002@example.com');
     const result = await runRaffle(h.deps(october().samsara), h.options());
     expect(result.ok).toBe(true);
-    expect(h.sent.map((m) => m.to[0])).toContain('of1007@example.com');
+    expect(h.sent.map((m) => m.to[0])).toContain('ma1001@example.com');
     expect(h.sent.at(-1)!.html).toContain('Birch, Tobias [tb1002]: mailbox unavailable');
   });
 

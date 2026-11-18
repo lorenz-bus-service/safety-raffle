@@ -25,9 +25,9 @@ beforeAll(async () => {
       response.statusCode = 401;
       response.end('{"message":"Invalid token"}');
     } else if (url.pathname === '/fleet/drivers') {
-      const active = url.searchParams.get('driverActivationStatus') === 'active';
+      requests.push(`drivers:${url.searchParams.get('driverActivationStatus')}`);
       const data = roster
-        .filter((d) => d.active === active)
+        .filter((d) => d.active)
         .map((d) => ({ id: d.id, name: d.name, username: d.username, email: d.email, tags: d.tags.map((name) => ({ name })) }));
       response.end(JSON.stringify({ data, pagination: { endCursor: '', hasNextPage: false } }));
     } else if (url.pathname === '/safety-scores/drivers') {
@@ -79,6 +79,8 @@ describe('command line', () => {
     expect(csv.length).toBeGreaterThan(100);
     expect(readdirSync(join(dataDir, 'scores'))).toHaveLength(31);
     expect(existsSync(join(dataDir, 'issued', '2026-10.json'))).toBe(true);
+    expect(requests.filter((r) => r.startsWith('drivers:'))).toEqual(['drivers:active']);
+    expect(csv.join()).not.toContain('of1007');
     expect(readdirSync(join(dataDir, 'logs'))).toHaveLength(1);
   });
 

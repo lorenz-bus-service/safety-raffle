@@ -59,7 +59,6 @@ All settings live in `.env`. [.env.sample](.env.sample) documents every one with
 | `SAMSARA_API_TOKEN` | none | Required. |
 | `TIME_ZONE` | `America/Chicago` | Where each day's midnight falls. US zones are listed in `.env.sample`. |
 | `MINIMUM_SCORE` / `MINIMUM_MILES` | `90` / `20` | The ticket rule. |
-| `INCLUDE_DEACTIVATED_DRIVERS` | `true` | Whether drivers deactivated since they drove still earn tickets. |
 | `EXCLUDE_USERNAMES`, `EXCLUDE_TAGS`, `EXCLUDE_ATTRIBUTES` | empty | Drivers who never earn tickets, such as shared placeholder accounts. |
 | `EMPLOYEE_ID_SOURCE` | `username` | The Samsara username, or the name of an external ID. |
 | `LABEL_LAYOUT` | `avery-5160` | The sheet. See [docs/label-stock.md](docs/label-stock.md). |
@@ -70,6 +69,8 @@ All settings live in `.env`. [.env.sample](.env.sample) documents every one with
 ## Things to know
 
 **The time zone matters.** It decides which day a late-night drive belongs to. Samsara counts a trip in the window in which it *ends*, so an overnight trip that leaves at 9pm and arrives at 2am counts entirely toward the second day. The time zone in use is printed at the start of every run and in the admin email.
+
+**Deactivated drivers earn no tickets.** Only drivers who are active in Samsara when the job runs are included. Samsara stops returning safety scores for a driver once they are deactivated, so a driver deactivated before the run gets nothing for that period, including days they drove.
 
 **Scores are collected fresh at every run.** Samsara revises past scores when staff review safety events. Each run collects the whole period again, so it sees the scores as they stand at that moment. Run the job a few days after month end to give reviews time to settle. See [docs/scheduling.md](docs/scheduling.md).
 
