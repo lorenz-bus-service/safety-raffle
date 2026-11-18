@@ -31,7 +31,10 @@ export interface Config {
   email: {
     transport: EmailTransport;
     from: string;
+    /** Staff who receive the ticket files and any failure notice. */
     admins: string[];
+    /** Copied on every email sent to the admins. */
+    adminsCc: string[];
     sendDriverEmails: boolean;
     includeNonQualifyingDays: boolean;
     smtp: { host: string; port: number; secure: boolean; username: string; password: string };
@@ -117,7 +120,8 @@ export function loadConfig(env: Env, options: { requireSamsara?: boolean } = {})
   const email: Config['email'] = {
     transport,
     from: text('EMAIL_FROM'),
-    admins: splitList(env.ADMIN_EMAILS),
+    admins: splitList(env.EMAILS_TO),
+    adminsCc: splitList(env.EMAILS_CC),
     sendDriverEmails: boolean('SEND_DRIVER_EMAILS', false),
     includeNonQualifyingDays: boolean('DRIVER_EMAIL_INCLUDE_NON_QUALIFYING', false),
     smtp: {

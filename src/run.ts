@@ -81,6 +81,7 @@ export async function runRaffle(deps: RunDeps, options: RunOptions): Promise<Run
       try {
         await deps.mailer.send({
           to: config.email.admins,
+          cc: config.email.adminsCc,
           subject: `FAILED: Safety raffle tickets ${span}`,
           html:
             `<p><strong>The safety raffle run for ${escapeHtml(span)} failed and produced no tickets.</strong></p>` +
@@ -183,6 +184,7 @@ export async function runRaffle(deps: RunDeps, options: RunOptions): Promise<Run
     try {
       await deps.mailer.send({
         to: config.email.admins,
+          cc: config.email.adminsCc,
         subject: `Safety raffle tickets ${span}${plan.isRerun ? ` (${kind} re-run)` : ''}`,
         html: adminHtml({ config, span, kind, headline, built, plan, summaries, options }),
         attachments: files,
@@ -204,6 +206,7 @@ export async function runRaffle(deps: RunDeps, options: RunOptions): Promise<Run
       try {
         await deps.mailer.send({
           to: config.email.admins,
+          cc: config.email.adminsCc,
           subject: `Safety raffle driver emails ${span}: ${report.noAddress.length + report.failed.length} not delivered`,
           html:
             `<p>${report.sent} driver emails were sent for ${escapeHtml(span)}.</p>` +

@@ -118,3 +118,36 @@ export function formatTicketDate(date: IsoDate, locale: string): string {
     new Date(Date.UTC(year, month - 1, day)),
   );
 }
+
+export interface PeriodChoice {
+  /** A calendar month, YYYY-MM. */
+  period?: string;
+  from?: string;
+  to?: string;
+  /** A single day. */
+  date?: string;
+}
+
+/**
+ * Turns the ways a period can be given into one range. With nothing given, it is last month.
+ * The range must end before today in the time zone: a day's scores are not complete until it is over.
+ */
+export function resolveRange(choice: PeriodChoice, timeZone: string, now: Date = new Date()): DateRange {
+  const given = (['period', 'from', 'date'] as const).filter((name) => choice[name]);
+  if (given.length > 1) throw new Error('Give only one of a period, a from date and a single date');
+  let range: DateRange;
+  if (choice.period) range = monthRange(choice.period);
+  else if (choice.date) range = { from: choice.date, to: choice.date };
+  else if (choice.from) range = { from: choice.from, to: choice.to || choice.from };
+  else if (choice.to) throw new Error('A to date needs a from date');
+  else range = previousMonth(timeZone, now);
+
+  parseIsoDate(range.from);
+  parseIsoDate(range.to);
+  if (range.from > range.to) throw new Error(`The range starts (${range.from}) after it ends (${range.to})`);
+  const today = todayIn(timeZone, now);
+  if (range.to >= today) {
+    throw new Error(`The range must end before today (${today} in ${timeZone}); a day's scores are not complete until it is over`);
+  }
+  return range;
+}

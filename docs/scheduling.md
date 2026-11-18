@@ -40,7 +40,7 @@ Schedule a `docker run` from the host's scheduler. With cron:
 
 ## Windmill
 
-Support for running inside a Windmill workspace is planned and not yet built.
+Add a schedule to the `create_tickets` script. See [windmill.md](windmill.md).
 
 ## Exit status
 

@@ -12,11 +12,13 @@
     "raffle": "node src/cli.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "sample": "node scripts/make-sample.ts"
+    "sample": "node scripts/make-sample.ts",
+    "build:windmill": "node scripts/build-windmill.ts"
   },
   "dependencies": {
     "nodemailer": "^10.6.0",
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "windmill-client": "^1.876.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

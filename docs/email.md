@@ -4,17 +4,20 @@ Email is off until `EMAIL_TRANSPORT` is set. Three ways of sending are supported
 
 ```ini
 EMAIL_FROM=raffle@example.com
-ADMIN_EMAILS=safety@example.com,operations@example.com
+EMAILS_TO=safety@example.com,operations@example.com
+EMAILS_CC=manager@example.com        # optional
 ```
 
 ## What gets sent
 
+"Staff" below means the `EMAILS_TO` addresses, with `EMAILS_CC` copied.
+
 | Email | To | When |
 |---|---|---|
-| Tickets | `ADMIN_EMAILS` | Every successful run. Attaches the ticket PDF, the ticket CSV and the per-driver summary. |
-| Failure notice | `ADMIN_EMAILS` | A run that could not collect every day. Lists the days and the errors. No attachments, because no tickets were produced. |
+| Tickets | `EMAILS_TO` | Every successful run. Attaches the ticket PDF, the ticket CSV and the per-driver summary. |
+| Failure notice | `EMAILS_TO` | A run that could not collect every day. Lists the days and the errors. No attachments, because no tickets were produced. |
 | Your tickets | Each driver | Only when `SEND_DRIVER_EMAILS=true`. The driver's ticket count and qualifying days. |
-| Driver email report | `ADMIN_EMAILS` | Only when some driver emails could not be delivered. Names the drivers. |
+| Driver email report | `EMAILS_TO` | Only when some driver emails could not be delivered. Names the drivers. |
 
 Driver emails are sent last, after the files are written and the admin email has gone, because they cannot be recalled. Driver addresses come from the email field of each driver's Samsara record. A driver with no address is skipped and named in the report. One failed driver email does not stop the others.
 
