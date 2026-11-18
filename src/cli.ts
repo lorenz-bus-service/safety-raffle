@@ -169,7 +169,6 @@ async function main(argv: string[]): Promise<number> {
       return 1;
     }
     const drivers = await samsara.listDrivers('active');
-    if (config.includeDeactivatedDrivers) drivers.push(...(await samsara.listDrivers('deactivated')));
     const comparison = compareWithReference(buildTickets(drivers, collection.days, config.rules), reference);
     console.log(`\nReference tickets: ${reference.length}`);
     console.log(`Matched:           ${comparison.matched}`);

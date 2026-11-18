@@ -113,8 +113,8 @@ export async function runRaffle(deps: RunDeps, options: RunOptions): Promise<Run
   // 2. The roster.
   let drivers: Driver[];
   try {
+    // Active Drivers only: a deactivated Driver has left, and Samsara no longer returns their scores.
     drivers = await deps.samsara.listDrivers('active');
-    if (config.includeDeactivatedDrivers) drivers.push(...(await deps.samsara.listDrivers('deactivated')));
   } catch (error) {
     return fail('The list of drivers could not be fetched from Samsara.', [errorText(error)]);
   }
@@ -135,6 +135,9 @@ export async function runRaffle(deps: RunDeps, options: RunOptions): Promise<Run
       (only.length === 0 || only.includes(issued.employeeId.trim().toLowerCase())),
     now().toISOString(),
   );
+  // A Ticket issued earlier to a Driver who has since been deactivated is not a Revision; leave it out of the report.
+  const rosterIds = new Set(drivers.map((driver) => driver.id));
+  plan.noLongerQualifying = plan.noLongerQualifying.filter((issued) => rosterIds.has(issued.driverId));
   result.issued = plan.toIssue;
   result.noLongerQualifying = plan.noLongerQualifying;
   const kind = !plan.isRerun ? 'first' : options.mode;
@@ -247,11 +250,10 @@ function adminHtml(input: {
     ['Tickets in this run', plan.toIssue.length],
     ['Tickets qualifying in total', built.tickets.length],
     ['Label sheet', config.layout.name],
-    ['Deactivated drivers included', config.includeDeactivatedDrivers ? 'yes' : 'no'],
     ['Drivers excluded by rule', built.excludedDrivers.length],
   ];
   if (options.employeeIds.length > 0) facts.push(['Restricted to employee IDs', options.employeeIds.join(', ')]);
-  if (built.unknownDriverIds.length > 0) facts.push(['Scores for drivers not in the roster (ignored)', built.unknownDriverIds.length]);
+  if (built.unknownDriverIds.length > 0) facts.push(['Scores for drivers not on the active roster (ignored)', built.unknownDriverIds.length]);
 
   let html = `<div style="font-family:sans-serif;font-size:14px"><p><strong>${escapeHtml(input.headline)}</strong></p>`;
   html += htmlTable(['Setting', 'Value'], facts);

@@ -46,7 +46,7 @@ export interface TicketResult {
   /** Driver-Days with some driving that did not earn a Ticket, in the same shape and order. */
   nonQualifying: Ticket[];
   excludedDrivers: Driver[];
-  /** Driver IDs that had scores but are not in the roster (for example, deactivated Drivers when those are not included). */
+  /** Driver IDs that had scores but are not in the roster, such as a Driver deactivated since the scores were collected. */
   unknownDriverIds: string[];
 }
 

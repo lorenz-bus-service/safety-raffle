@@ -18,7 +18,6 @@ describe('configuration', () => {
     expect(config.timeZone).toBe('America/Chicago');
     expect(config.rules.minimumScore).toBe(90);
     expect(config.rules.minimumMiles).toBe(20);
-    expect(config.includeDeactivatedDrivers).toBe(true);
     expect(config.rules.excludeUsernames).toEqual([]);
     expect(config.rules.employeeIdSource).toBe('username');
     expect(config.layout.name).toBe('avery-5160');

@@ -8,6 +8,10 @@ Rewards safe driving by turning each driver's daily Samsara safety score into ra
 A person who operates a vehicle and has a driver record in Samsara.
 _Avoid_: Employee, operator
 
+**Deactivated Driver**:
+A Driver whose Samsara record has been deactivated because they have left the organisation. A Deactivated Driver earns no Tickets.
+_Avoid_: Inactive, terminated
+
 **Employee ID**:
 The organisation's own identifier for a Driver, printed on each Ticket to tell apart Drivers who share a name.
 _Avoid_: Username, employee number, driver ID
